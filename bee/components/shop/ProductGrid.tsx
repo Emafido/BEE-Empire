@@ -1,9 +1,20 @@
 "use client";
 
-import FashionCard, { Product } from "./FashionCard";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import FashionCard, { Product } from "./FashionCard";
 import { Loader2 } from "lucide-react";
+
+interface ApiProduct {
+  ID: number;
+  name: string;
+  price: number;
+  category: string;
+  imageUrl?: string;
+  image_url?: string;
+  isNew?: boolean;
+  is_new?: boolean;
+}
 
 export default function ProductGrid() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -16,16 +27,24 @@ export default function ProductGrid() {
         if (!response.ok) throw new Error("Failed to fetch");
         
         const data = await response.json();
+        const latestProducts = data.reverse().slice(0, 4);
         
-        // Map the data and slice only the first 4 for the home page preview
-        const formattedProducts: Product[] = data.slice(0, 4).map((item: any) => ({
-          id: String(item.ID),
-          name: item.name,
-          price: item.price,
-          category: item.category,
-          imageUrl: item.image_url,
-          isNew: item.is_new,
-        }));
+        const formattedProducts: Product[] = latestProducts.map((item: ApiProduct, index: number) => {
+          // Aggressive check: Ensure it's actually a string and not empty before assigning
+          const rawImg = item.imageUrl || item.image_url;
+          const finalImage = (typeof rawImg === 'string' && rawImg.trim() !== "") 
+            ? rawImg 
+            : "/mock-1.jpg";
+
+          return {
+            id: item.ID ? String(item.ID) : `fallback-id-${index}`,
+            name: item.name || "Untitled Drop",
+            price: item.price || 0,
+            category: item.category || "Uncategorized",
+            imageUrl: finalImage,
+            isNew: item.isNew || item.is_new || false,
+          };
+        });
 
         setProducts(formattedProducts);
       } catch (error) {
@@ -39,33 +58,28 @@ export default function ProductGrid() {
   }, []);
 
   return (
-    <section id="collection" className="w-full max-w-7xl mx-auto px-5 md:px-12 py-24 min-h-[60vh]">
-      <div className="flex justify-between items-end mb-12">
-        <div>
-          <h2 className="text-3xl md:text-5xl font-bold uppercase tracking-tighter text-neutral-900 dark:text-neutral-50">
-            Latest Arrivals
-          </h2>
-          <p className="mt-2 text-neutral-600 dark:text-neutral-400 tracking-wide">
-            Curated pieces for the bold.
-          </p>
+    <section className="w-full max-w-7xl mx-auto px-5 md:px-12 py-20 md:py-32">
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+        <div className="max-w-2xl">
+          <h2 className="text-3xl md:text-5xl font-bold uppercase tracking-tight text-neutral-900 dark:text-neutral-50 mb-4">Latest Arrivals</h2>
+          <p className="text-neutral-600 dark:text-neutral-400 font-medium">Curated pieces for the bold.</p>
         </div>
         <Link 
-          href="/collection" 
-          className="text-sm font-bold uppercase tracking-widest border-b-2 border-neutral-900 dark:border-neutral-50 pb-1 hover:text-amber-600 dark:hover:text-amber-500 hover:border-amber-600 dark:hover:border-amber-500 transition-colors whitespace-nowrap ml-4"
+          href="/collection"
+          className="group flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-neutral-900 dark:text-neutral-50 hover:text-amber-600 dark:hover:text-amber-500 transition-colors"
         >
           View All
+          <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
         </Link>
       </div>
 
       {isLoading ? (
         <div className="w-full py-20 flex flex-col items-center justify-center gap-4">
           <Loader2 className="w-10 h-10 text-amber-600 dark:text-amber-500 animate-spin" />
-          <p className="text-sm font-bold uppercase tracking-widest text-neutral-500 animate-pulse">
-            Loading latest drops...
-          </p>
+          <p className="text-sm font-bold uppercase tracking-widest text-neutral-500 animate-pulse">Loading Drops...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-16">
           {products.map((product) => (
             <FashionCard key={product.id} product={product} />
           ))}

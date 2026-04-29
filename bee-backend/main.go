@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -14,10 +15,12 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// --- MOCK SEED DATA (Kept the same) ---
+// --- MOCK SEED DATA ---
 func SeedDatabase() {
+	// 1. Check and Seed Products
 	var productCount int64
 	DB.Model(&Product{}).Count(&productCount)
+
 	if productCount == 0 {
 		log.Println("Seeding database with updated variants...")
 		products := []Product{
@@ -28,8 +31,10 @@ func SeedDatabase() {
 		DB.Create(&products)
 	}
 
+	// 2. INDEPENDENTLY Check and Seed Admin
 	var adminCount int64
 	DB.Model(&AdminUser{}).Count(&adminCount)
+
 	if adminCount == 0 {
 		log.Println("Creating default admin account...")
 		DB.Create(&AdminUser{Username: "admin", Password: "password123"})
@@ -63,12 +68,13 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	// Generate JWT Token valid for 24 hours
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 	})
 
-	tokenString, err := token.SignedString(jwtSecret)
+	tokenString, err := token.SignedString(jwtSecret) // jwtSecret is pulled from middleware.go
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
 		return
@@ -77,7 +83,7 @@ func Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"token": tokenString})
 }
 
-// --- PROTECTED ADMIN ROUTES (UPDATED FOR FILES) ---
+// --- PROTECTED ADMIN ROUTES ---
 func CreateProduct(c *gin.Context) {
 	// 1. Parse the text fields from the Multipart Form
 	name := c.PostForm("name")
@@ -95,8 +101,11 @@ func CreateProduct(c *gin.Context) {
 	var imageUrl string
 
 	if err == nil {
+		// CRITICAL FIX: Replace spaces in the filename with dashes
+		cleanFilename := strings.ReplaceAll(file.Filename, " ", "-")
+		
 		// Generate a unique filename using a timestamp so files don't overwrite each other
-		filename := fmt.Sprintf("%d-%s", time.Now().Unix(), file.Filename)
+		filename := fmt.Sprintf("%d-%s", time.Now().Unix(), cleanFilename)
 		filepath := filepath.Join("uploads", filename)
 
 		// Save the physical file to our server
@@ -105,7 +114,7 @@ func CreateProduct(c *gin.Context) {
 			return
 		}
 		
-		// The URL the frontend will use to display it
+		// The safe URL the frontend will use to display it
 		imageUrl = "http://localhost:8080/uploads/" + filename
 	} else {
 		// Fallback if no image is uploaded
@@ -128,7 +137,7 @@ func CreateProduct(c *gin.Context) {
 }
 
 func main() {
-	ConnectDatabase()
+	ConnectDatabase() // Pulled from database.go
 	SeedDatabase()
 
 	// Ensure the uploads directory exists on startup
@@ -145,15 +154,17 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	// NEW: Serve the /uploads folder directly to the web
+	// Serve the /uploads folder directly to the web
 	r.Static("/uploads", "./uploads")
 
+	// Public Routes
 	r.GET("/ping", func(c *gin.Context) { c.JSON(200, gin.H{"message": "API is LIVE"}) })
 	r.GET("/products", GetProducts)
 	r.POST("/login", Login)
 
+	// Protected Admin Group
 	admin := r.Group("/admin")
-	admin.Use(AuthRequired()) 
+	admin.Use(AuthRequired()) // Apply the middleware from middleware.go
 	{
 		admin.POST("/products", CreateProduct)
 	}

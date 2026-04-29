@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, FormEvent } from "react";
-import { Lock, Unlock, Loader2, Plus, CheckCircle2, Image as ImageIcon } from "lucide-react";
+import { Lock, Unlock, Loader2, Plus, CheckCircle2, Image as ImageIcon, X, ChevronDown } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminPage() {
@@ -14,22 +14,42 @@ export default function AdminPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  
+  // Base categories, will be dynamically expanded by the database
+  const [existingCategories, setExistingCategories] = useState([
+    "Bags", "Sets", "Dresses", "Outerwear", "Tops", "Bottoms", "Accessories"
+  ]);
+
   const [formData, setFormData] = useState({
     name: "",
     price: "",
-    category: "Bags",
+    category: "Bags", 
     colors: "",
     sizes: "",
     isNew: false,
   });
   
-  // NEW: State for the physical file
+  // UX State for the morphed input
+  const [isCustomCategoryMode, setIsCustomCategoryMode] = useState(false);
+  const [customCategory, setCustomCategory] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   useEffect(() => {
     const savedToken = localStorage.getItem("admin_token");
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (savedToken) setToken(savedToken);
+
+    // Fetch existing database categories so the dropdown remembers her past custom creations
+    fetch("http://localhost:8080/products")
+      .then(res => res.json())
+      .then(data => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const uniqueCats = Array.from(new Set(data.map((p: any) => p.category)));
+        const combined = Array.from(new Set([...existingCategories, ...uniqueCats as string[]]));
+        setExistingCategories(combined);
+      })
+      .catch(console.error);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleLogin = async (e: FormEvent) => {
@@ -67,11 +87,12 @@ export default function AdminPage() {
     setIsSubmitting(true);
     setSuccessMsg("");
 
-    // NEW: We use FormData to package the file and the text together
+    const finalCategory = isCustomCategoryMode ? customCategory : formData.category;
+
     const submitData = new FormData();
     submitData.append("name", formData.name);
     submitData.append("price", formData.price);
-    submitData.append("category", formData.category);
+    submitData.append("category", finalCategory);
     submitData.append("colors", formData.colors);
     submitData.append("sizes", formData.sizes);
     submitData.append("isNew", String(formData.isNew));
@@ -83,10 +104,7 @@ export default function AdminPage() {
     try {
       const res = await fetch("http://localhost:8080/admin/products", {
         method: "POST",
-        // Notice we DO NOT set Content-Type here. The browser sets it automatically to multipart/form-data
-        headers: {
-          "Authorization": `Bearer ${token}`
-        },
+        headers: { "Authorization": `Bearer ${token}` },
         body: submitData,
       });
 
@@ -99,7 +117,16 @@ export default function AdminPage() {
       }
 
       setSuccessMsg("Drop published successfully!");
-      setFormData({ name: "", price: "", category: "Bags", colors: "", sizes: "", isNew: false });
+      
+      // If she created a new category, instantly add it to the dropdown options
+      if (isCustomCategoryMode && !existingCategories.includes(customCategory)) {
+        setExistingCategories(prev => [...prev, customCategory]);
+      }
+
+      // Reset Form
+      setFormData({ name: "", price: "", category: isCustomCategoryMode ? customCategory : formData.category, colors: "", sizes: "", isNew: false });
+      setIsCustomCategoryMode(false);
+      setCustomCategory("");
       setImageFile(null);
       
       setTimeout(() => setSuccessMsg(""), 3000);
@@ -112,11 +139,11 @@ export default function AdminPage() {
     }
   };
 
+  // --- VIEW 1: LOGIN ---
   if (!token) {
     return (
-      <div className="min-h-screen bg-boutique-light dark:bg-boutique-dark flex items-center justify-center p-5 selection:bg-amber-600 selection:text-white transition-colors duration-500">
-        {/* ... (Login UI unchanged) ... */}
-        <div className="w-full max-w-md p-8 md:p-10 bg-white dark:bg-[#1A1715] shadow-2xl rounded-sm border border-neutral-200 dark:border-neutral-800 animate-in zoom-in-95 duration-500">
+      <div className="min-h-screen bg-boutique-light dark:bg-boutique-dark flex items-center justify-center p-5 transition-colors duration-500">
+        <div className="w-full max-w-md p-8 md:p-10 bg-white dark:bg-[#1A1715] shadow-2xl rounded-sm border border-neutral-200 dark:border-neutral-800">
           <div className="flex flex-col items-center mb-8">
             <div className="w-12 h-12 bg-neutral-100 dark:bg-neutral-900 rounded-full flex items-center justify-center mb-4">
               <Lock className="w-5 h-5 text-neutral-900 dark:text-neutral-50" />
@@ -128,28 +155,23 @@ export default function AdminPage() {
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="block text-xs font-bold uppercase tracking-widest text-neutral-500 mb-2">Username</label>
-              <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full p-4 bg-transparent border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-50 text-sm focus:border-amber-600 dark:focus:border-amber-500 outline-none transition-colors" required />
+              <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full p-4 bg-transparent border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-50 text-sm focus:border-amber-600 outline-none transition-colors" required />
             </div>
             <div>
               <label className="block text-xs font-bold uppercase tracking-widest text-neutral-500 mb-2">Password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-4 bg-transparent border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-50 text-sm focus:border-amber-600 dark:focus:border-amber-500 outline-none transition-colors" required />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-4 bg-transparent border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-50 text-sm focus:border-amber-600 outline-none transition-colors" required />
             </div>
             {loginError && <p className="text-red-500 text-xs font-bold uppercase tracking-widest text-center">{loginError}</p>}
-            <button type="submit" disabled={isLoggingIn} className="w-full py-4 mt-4 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-bold uppercase tracking-widest text-sm hover:bg-amber-600 dark:hover:bg-amber-500 transition-colors flex justify-center items-center">
+            <button type="submit" disabled={isLoggingIn} className="w-full py-4 mt-4 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-bold uppercase tracking-widest text-sm hover:bg-amber-600 transition-colors flex justify-center items-center">
               {isLoggingIn ? <Loader2 className="w-5 h-5 animate-spin" /> : "Access Vault"}
             </button>
           </form>
-          
-          <div className="mt-8 text-center border-t border-neutral-200 dark:border-neutral-800 pt-6">
-            <Link href="/" className="text-xs font-bold uppercase tracking-widest text-neutral-500 hover:text-amber-600 transition-colors">
-              &larr; Return to Storefront
-            </Link>
-          </div>
         </div>
       </div>
     );
   }
 
+  // --- VIEW 2: ADMIN DASHBOARD ---
   return (
     <div className="min-h-screen bg-neutral-100 dark:bg-black transition-colors duration-500 pb-20">
       <nav className="w-full bg-white dark:bg-[#1A1715] border-b border-neutral-200 dark:border-neutral-800 px-5 md:px-12 py-4 flex justify-between items-center sticky top-0 z-50">
@@ -158,11 +180,8 @@ export default function AdminPage() {
           <span className="text-sm font-bold uppercase tracking-widest text-neutral-900 dark:text-neutral-50">Command Center</span>
         </div>
         <div className="flex items-center gap-6">
-          {/* FIXED: Added target="_blank" so she doesn't lose her session view */}
           <Link href="/" target="_blank" className="text-xs font-bold uppercase tracking-widest text-neutral-500 hover:text-amber-600 transition-colors">View Live Store ↗</Link>
-          <button onClick={handleLogout} className="text-xs font-bold uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors">
-            Lock Vault
-          </button>
+          <button onClick={handleLogout} className="text-xs font-bold uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors">Lock Vault</button>
         </div>
       </nav>
 
@@ -174,7 +193,6 @@ export default function AdminPage() {
 
         <form onSubmit={handleCreateProduct} className="bg-white dark:bg-[#1A1715] p-6 md:p-10 shadow-xl border border-neutral-200 dark:border-neutral-800 space-y-8 rounded-sm">
           
-          {/* File Upload Area */}
           <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-sm p-8 flex flex-col items-center justify-center relative hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors cursor-pointer group">
             <input 
               type="file" 
@@ -213,15 +231,54 @@ export default function AdminPage() {
 
             <div className="md:col-span-2">
               <label className="block text-xs font-bold uppercase tracking-widest text-neutral-500 mb-2">Category</label>
-              <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full p-3 bg-transparent border-b-2 border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-50 text-sm focus:border-amber-600 outline-none transition-colors cursor-pointer">
-                <option value="Bags">Bags</option>
-                <option value="Sets">Two-Pieces & Sets</option>
-                <option value="Dresses">Dresses</option>
-                <option value="Outerwear">Outerwear</option>
-                <option value="Tops">Tops</option>
-                <option value="Bottoms">Bottoms</option>
-                <option value="Accessories">Accessories</option>
-              </select>
+              
+              {/* THE NEW CATEGORY UX MORPH */}
+              {isCustomCategoryMode ? (
+                <div className="relative animate-in fade-in zoom-in-95 duration-200">
+                  <input 
+                    type="text" 
+                    value={customCategory} 
+                    onChange={(e) => setCustomCategory(e.target.value)} 
+                    placeholder="Type new category name (e.g. Footwear)" 
+                    className="w-full p-3 pr-12 bg-transparent border-b-2 border-amber-600 text-neutral-900 dark:text-neutral-50 text-sm outline-none transition-colors" 
+                    autoFocus
+                    required 
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setIsCustomCategoryMode(false);
+                      setCustomCategory("");
+                    }}
+                    className="absolute right-0 top-0 bottom-0 px-3 text-neutral-400 hover:text-red-500 transition-colors flex items-center justify-center"
+                    title="Cancel new category"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <select 
+                    value={formData.category} 
+                    onChange={(e) => {
+                      if (e.target.value === "custom") {
+                        setIsCustomCategoryMode(true);
+                      } else {
+                        setFormData({...formData, category: e.target.value});
+                      }
+                    }} 
+                    // appearance-none removes the ugly default browser arrow
+                    className="w-full p-3 pr-10 appearance-none bg-transparent border-b-2 border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-50 text-sm focus:border-amber-600 outline-none transition-colors cursor-pointer"
+                  >
+                    {existingCategories.map((cat) => (
+                      <option key={cat} value={cat} className="bg-white dark:bg-[#1A1715]">{cat}</option>
+                    ))}
+                    <option disabled>──────────</option>
+                    <option value="custom" className="font-bold text-amber-600">+ Create New Category...</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+                </div>
+              )}
             </div>
           </div>
 
@@ -229,13 +286,11 @@ export default function AdminPage() {
             <div>
               <label className="block text-xs font-bold uppercase tracking-widest text-neutral-500 mb-2">Available Colors</label>
               <input type="text" value={formData.colors} onChange={(e) => setFormData({...formData, colors: e.target.value})} placeholder="Black, White, Sky Blue" className="w-full p-3 bg-transparent border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-50 text-sm focus:border-amber-600 outline-none transition-colors" required />
-              <p className="text-[10px] text-neutral-500 mt-2 uppercase tracking-wide">Separate with commas</p>
             </div>
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-widest text-neutral-500 mb-2">Available Sizes</label>
               <input type="text" value={formData.sizes} onChange={(e) => setFormData({...formData, sizes: e.target.value})} placeholder="S, M, L, XL (or 'Standard' for bags)" className="w-full p-3 bg-transparent border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-50 text-sm focus:border-amber-600 outline-none transition-colors" required />
-              <p className="text-[10px] text-neutral-500 mt-2 uppercase tracking-wide">Separate with commas</p>
             </div>
           </div>
 
@@ -259,7 +314,6 @@ export default function AdminPage() {
               {isSubmitting ? "Publishing..." : "Publish to Store"}
             </button>
           </div>
-
         </form>
       </main>
     </div>
