@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/glebarez/sqlite" // <--- The Pure Go driver
+	"github.com/glebarez/sqlite" 
 	"gorm.io/gorm"
 )
 
@@ -18,8 +18,8 @@ func ConnectDatabase() {
 
 	log.Println("Database connection established. No CGO required!")
 
-	// Auto-Migrate our Product schema
-	err = db.AutoMigrate(&Product{})
+	// FIXED: We must explicitly tell GORM to build BOTH tables!
+	err = db.AutoMigrate(&Product{}, &AdminUser{})
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}

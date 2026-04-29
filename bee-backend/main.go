@@ -1,8 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -10,12 +14,11 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// --- MOCK SEED DATA ---
+// --- MOCK SEED DATA (Kept the same) ---
 func SeedDatabase() {
-	var count int64
-	DB.Model(&Product{}).Count(&count)
-
-	if count == 0 {
+	var productCount int64
+	DB.Model(&Product{}).Count(&productCount)
+	if productCount == 0 {
 		log.Println("Seeding database with updated variants...")
 		products := []Product{
 			{Name: "Velvet Trench Coat", Price: 85000, Category: "Outerwear", ImageUrl: "/mock-5.jpg", IsNew: false, Colors: "Black,Brown,Nude", Sizes: "S,M,L"},
@@ -23,8 +26,12 @@ func SeedDatabase() {
 			{Name: "Signature Mini Tote", Price: 14500, Category: "Bags", ImageUrl: "/mock-1.jpg", IsNew: true, Colors: "Black,White,Nude,Brown", Sizes: "Standard"},
 		}
 		DB.Create(&products)
+	}
 
-		// Create a default admin user for testing
+	var adminCount int64
+	DB.Model(&AdminUser{}).Count(&adminCount)
+	if adminCount == 0 {
+		log.Println("Creating default admin account...")
 		DB.Create(&AdminUser{Username: "admin", Password: "password123"})
 	}
 }
@@ -56,7 +63,6 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Generate JWT Token valid for 24 hours
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
@@ -71,12 +77,50 @@ func Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"token": tokenString})
 }
 
-// --- PROTECTED ADMIN ROUTES ---
+// --- PROTECTED ADMIN ROUTES (UPDATED FOR FILES) ---
 func CreateProduct(c *gin.Context) {
-	var newProduct Product
-	if err := c.ShouldBindJSON(&newProduct); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+	// 1. Parse the text fields from the Multipart Form
+	name := c.PostForm("name")
+	priceStr := c.PostForm("price")
+	category := c.PostForm("category")
+	colors := c.PostForm("colors")
+	sizes := c.PostForm("sizes")
+	isNewStr := c.PostForm("isNew")
+
+	price, _ := strconv.ParseFloat(priceStr, 64)
+	isNew := isNewStr == "true"
+
+	// 2. Handle the Image Upload
+	file, err := c.FormFile("image")
+	var imageUrl string
+
+	if err == nil {
+		// Generate a unique filename using a timestamp so files don't overwrite each other
+		filename := fmt.Sprintf("%d-%s", time.Now().Unix(), file.Filename)
+		filepath := filepath.Join("uploads", filename)
+
+		// Save the physical file to our server
+		if err := c.SaveUploadedFile(file, filepath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
+			return
+		}
+		
+		// The URL the frontend will use to display it
+		imageUrl = "http://localhost:8080/uploads/" + filename
+	} else {
+		// Fallback if no image is uploaded
+		imageUrl = "/mock-1.jpg" 
+	}
+
+	// 3. Save to Database
+	newProduct := Product{
+		Name:     name,
+		Price:    price,
+		Category: category,
+		ImageUrl: imageUrl,
+		Colors:   colors,
+		Sizes:    sizes,
+		IsNew:    isNew,
 	}
 
 	DB.Create(&newProduct)
@@ -87,25 +131,29 @@ func main() {
 	ConnectDatabase()
 	SeedDatabase()
 
+	// Ensure the uploads directory exists on startup
+	os.MkdirAll("uploads", os.ModePerm)
+
 	r := gin.Default()
 
 	// CORS Config
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
 
-	// Public Routes
+	// NEW: Serve the /uploads folder directly to the web
+	r.Static("/uploads", "./uploads")
+
 	r.GET("/ping", func(c *gin.Context) { c.JSON(200, gin.H{"message": "API is LIVE"}) })
 	r.GET("/products", GetProducts)
 	r.POST("/login", Login)
 
-	// Protected Admin Group
 	admin := r.Group("/admin")
-	admin.Use(AuthRequired()) // Apply the middleware here
+	admin.Use(AuthRequired()) 
 	{
 		admin.POST("/products", CreateProduct)
 	}
