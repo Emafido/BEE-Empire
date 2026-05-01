@@ -1,54 +1,27 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
+	"github.com/cloudinary/cloudinary-go/v2"
+	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/joho/godotenv"
 )
 
-// --- MOCK SEED DATA ---
-func SeedDatabase() {
-	// 1. Check and Seed Products
-	var productCount int64
-	DB.Model(&Product{}).Count(&productCount)
-
-	if productCount == 0 {
-		log.Println("Seeding database with updated variants...")
-		products := []Product{
-			{Name: "Velvet Trench Coat", Price: 85000, Category: "Outerwear", ImageUrl: "/mock-5.jpg", IsNew: false, Colors: "Black,Brown,Nude", Sizes: "S,M,L"},
-			{Name: "Ribbed Knit Two-Piece", Price: 32000, Category: "Sets", ImageUrl: "/mock-2.jpg", IsNew: false, Colors: "Sky Blue,Pink,Grey", Sizes: "S,M,L,XL"},
-			{Name: "Signature Mini Tote", Price: 14500, Category: "Bags", ImageUrl: "/mock-1.jpg", IsNew: true, Colors: "Black,White,Nude,Brown", Sizes: "Standard"},
-		}
-		DB.Create(&products)
-	}
-
-	// 2. INDEPENDENTLY Check and Seed Admin
-	var adminCount int64
-	DB.Model(&AdminUser{}).Count(&adminCount)
-
-	if adminCount == 0 {
-		log.Println("Creating default admin account...")
-		DB.Create(&AdminUser{Username: "admin", Password: "password123"})
-	}
-}
-
-// --- PUBLIC ROUTES ---
 func GetProducts(c *gin.Context) {
 	var products []Product
-	DB.Find(&products)
+	DB.Order("created_at desc").Find(&products)
 	c.JSON(http.StatusOK, products)
 }
 
-// --- AUTH ROUTE ---
 func Login(c *gin.Context) {
 	var credentials struct {
 		Username string `json:"username"`
@@ -68,13 +41,13 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Generate JWT Token valid for 24 hours
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 	})
 
-	tokenString, err := token.SignedString(jwtSecret) // jwtSecret is pulled from middleware.go
+	// Uses jwtSecret defined in models.go
+	tokenString, err := token.SignedString(jwtSecret)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
 		return
@@ -83,45 +56,39 @@ func Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"token": tokenString})
 }
 
-// --- PROTECTED ADMIN ROUTES ---
 func CreateProduct(c *gin.Context) {
-	// 1. Parse the text fields from the Multipart Form
 	name := c.PostForm("name")
 	priceStr := c.PostForm("price")
 	category := c.PostForm("category")
 	colors := c.PostForm("colors")
 	sizes := c.PostForm("sizes")
+	stockStr := c.PostForm("stock")
 	isNewStr := c.PostForm("isNew")
 
 	price, _ := strconv.ParseFloat(priceStr, 64)
+	stock, _ := strconv.Atoi(stockStr)
 	isNew := isNewStr == "true"
 
-	// 2. Handle the Image Upload
 	file, err := c.FormFile("image")
 	var imageUrl string
 
 	if err == nil {
-		// CRITICAL FIX: Replace spaces in the filename with dashes
-		cleanFilename := strings.ReplaceAll(file.Filename, " ", "-")
-		
-		// Generate a unique filename using a timestamp so files don't overwrite each other
-		filename := fmt.Sprintf("%d-%s", time.Now().Unix(), cleanFilename)
-		filepath := filepath.Join("uploads", filename)
+		fileContent, _ := file.Open()
+		defer fileContent.Close()
 
-		// Save the physical file to our server
-		if err := c.SaveUploadedFile(file, filepath); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
-			return
+		cld, _ := cloudinary.NewFromURL(os.Getenv("CLOUDINARY_URL"))
+		ctx := context.Background()
+		uploadResult, uploadErr := cld.Upload.Upload(ctx, fileContent, uploader.UploadParams{
+			Folder: "bee_empire_drops",
+		})
+
+		if uploadErr == nil {
+			imageUrl = uploadResult.SecureURL
+		} else {
+			log.Println("❌ CLOUDINARY UPLOAD ERROR:", uploadErr)
 		}
-		
-		// The safe URL the frontend will use to display it
-		imageUrl = "http://localhost:8080/uploads/" + filename
-	} else {
-		// Fallback if no image is uploaded
-		imageUrl = "/mock-1.jpg" 
 	}
 
-	// 3. Save to Database
 	newProduct := Product{
 		Name:     name,
 		Price:    price,
@@ -129,6 +96,7 @@ func CreateProduct(c *gin.Context) {
 		ImageUrl: imageUrl,
 		Colors:   colors,
 		Sizes:    sizes,
+		Stock:    stock,
 		IsNew:    isNew,
 	}
 
@@ -136,37 +104,38 @@ func CreateProduct(c *gin.Context) {
 	c.JSON(http.StatusCreated, newProduct)
 }
 
-func main() {
-	ConnectDatabase() // Pulled from database.go
-	SeedDatabase()
+func DeleteProduct(c *gin.Context) {
+	id := c.Param("id")
+	if err := DB.Delete(&Product{}, id).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Product deleted successfully"})
+}
 
-	// Ensure the uploads directory exists on startup
-	os.MkdirAll("uploads", os.ModePerm)
+func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("Warning: No .env file found.")
+	}
+
+	ConnectDatabase()
 
 	r := gin.Default()
 
-	// CORS Config
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowAllOrigins:  true,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
 	}))
 
-	// Serve the /uploads folder directly to the web
-	r.Static("/uploads", "./uploads")
-
-	// Public Routes
-	r.GET("/ping", func(c *gin.Context) { c.JSON(200, gin.H{"message": "API is LIVE"}) })
 	r.GET("/products", GetProducts)
 	r.POST("/login", Login)
 
-	// Protected Admin Group
 	admin := r.Group("/admin")
-	admin.Use(AuthRequired()) // Apply the middleware from middleware.go
+	admin.Use(AuthRequired())
 	{
 		admin.POST("/products", CreateProduct)
+		admin.DELETE("/products/:id", DeleteProduct)
 	}
 
 	r.Run(":8080")

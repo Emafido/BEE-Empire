@@ -2,23 +2,34 @@ package main
 
 import (
 	"log"
+	"os"
 
-	"github.com/glebarez/sqlite" 
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
 
 func ConnectDatabase() {
-	// Connect to local SQLite file
-	db, err := gorm.Open(sqlite.Open("shop.db"), &gorm.Config{})
-	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		log.Fatal("DATABASE_URL environment variable is not set!")
 	}
 
-	log.Println("Database connection established. No CGO required!")
+	// Peace treaty between GORM and Supabase Connection Pooler
+	db, err := gorm.Open(postgres.New(postgres.Config{
+		DSN:                  dsn,
+		PreferSimpleProtocol: true, 
+	}), &gorm.Config{
+		PrepareStmt: false, 
+	})
 
-	// FIXED: We must explicitly tell GORM to build BOTH tables!
+	if err != nil {
+		log.Fatal("Failed to connect to PostgreSQL:", err)
+	}
+
+	log.Println("🔥 Connected to Production PostgreSQL!")
+
 	err = db.AutoMigrate(&Product{}, &AdminUser{})
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
