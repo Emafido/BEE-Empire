@@ -22,7 +22,7 @@ export default function ProductGrid() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    fetch("http://localhost:8080/products?t=" + new Date().getTime(), { 
+    fetch("https://bee-empire.onrender.com/products?t=" + new Date().getTime(), { 
       cache: "no-store" 
     })
       .then(res => res.json())

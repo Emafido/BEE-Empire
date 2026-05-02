@@ -24,7 +24,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${greatVibes.variable} font-sans bg-boutique-light dark:bg-boutique-dark text-neutral-900 dark:text-neutral-50 transition-colors duration-500 ease-in-out antialiased flex flex-col min-h-screen`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           
-          <main className="flex-grow">
+          <main className="grow">
             {children}
           </main>
           

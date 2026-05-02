@@ -112,7 +112,7 @@ export default function QuickShopModal({ isOpen, onClose, product }: QuickShopMo
 
         {/* IMAGE FIX: Slashed height on mobile to h-[140px] to guarantee everything fits without scrolling */}
         <div 
-          className="w-full md:w-1/2 h-[140px] sm:h-48 md:h-auto md:min-h-[480px] bg-neutral-900 relative shrink-0 p-2 md:p-4"
+          className="w-full md:w-1/2 h-35 sm:h-48 md:h-auto md:min-h-120 bg-neutral-900 relative shrink-0 p-2 md:p-4"
           style={{ position: 'relative' }}
         >
           {pImageUrl ? (

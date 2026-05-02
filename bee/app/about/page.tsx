@@ -3,11 +3,11 @@
 import TopNav from "@/components/navigation/TopNav";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 
 export default function AboutPage() {
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -15,12 +15,12 @@ export default function AboutPage() {
     },
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 30, opacity: 0 },
     visible: { 
       y: 0, 
       opacity: 1, 
-      transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } 
+      transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as const } 
     },
   };
 
@@ -51,20 +51,20 @@ export default function AboutPage() {
               className="text-5xl md:text-7xl font-bold uppercase tracking-tighter text-neutral-900 dark:text-neutral-50 leading-[0.9]"
             >
               Not for <br />
-              <span className="font-script lowercase text-amber-600 dark:text-amber-500 text-6xl md:text-8xl tracking-normal italic ml-[-5px]">
+              <span className="font-script lowercase text-amber-600 dark:text-amber-500 text-6xl md:text-8xl tracking-normal italic -ml-1.25">
                 everyone.
               </span>
             </motion.h1>
 
             <motion.div variants={itemVariants} className="mt-10 space-y-6 text-base md:text-lg text-neutral-600 dark:text-neutral-400 font-medium max-w-lg">
               <p>
-                BEE Empire's was built on a singular premise: fashion should be unapologetic. We don't design for the crowd. We curate highly limited, premium drops for the modern woman who commands the room the moment she steps inside.
+                BEE Empire&apos;s was built on a singular premise: fashion should be unapologetic. We don&apos;t design for the crowd. We curate highly limited, premium drops for the modern woman who commands the room the moment she steps inside.
               </p>
               <p>
                 Every piece in our collection is carefully vetted for quality, texture, and silhouette. Our drops are exclusive—meaning once a collection sells out, it rarely returns. 
               </p>
               <p className="text-neutral-900 dark:text-neutral-50 font-bold border-l-2 border-amber-600 pl-4 py-1 italic">
-                "Your aesthetic is your introduction. Make it impossible to ignore."
+                &quot;Your aesthetic is your introduction. Make it impossible to ignore.&quot;
               </p>
             </motion.div>
 
@@ -84,14 +84,15 @@ export default function AboutPage() {
           {/* RIGHT: Editorial Image */}
           <motion.div 
             variants={itemVariants}
-            className="w-full lg:w-1/2 relative h-[60vh] min-h-[500px] lg:h-[80vh] w-full"
+            className="w-full lg:w-1/2 relative h-[60vh] min-h-125 lg:h-[80vh]"
           >
             <div className="absolute inset-0 bg-neutral-200 dark:bg-neutral-800 drop-shadow-2xl overflow-hidden rounded-sm">
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
+              <div className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent z-10" />
               <Image 
                 src="/about-hero.jpg" 
                 alt="Behind the scenes at BEE Empire's" 
                 fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
                 className="object-cover object-center scale-105 hover:scale-100 transition-transform duration-1000 ease-out"
                 priority
               />

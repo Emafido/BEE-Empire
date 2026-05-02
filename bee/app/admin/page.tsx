@@ -35,7 +35,7 @@ export default function AdminPage() {
   const fetchProducts = useCallback(async () => {
     try {
       // CACHE BUSTER ADDED
-      const res = await fetch("http://localhost:8080/products?t=" + new Date().getTime(), { cache: "no-store" });
+      const res = await fetch("https://bee-empire.onrender.com/products?t=" + new Date().getTime(), { cache: "no-store" });
       const data = await res.json();
       setProducts(data || []);
       const uniqueCats = Array.from(new Set((data || []).map((p: Product) => p.category || p.Category)));
@@ -62,7 +62,7 @@ export default function AdminPage() {
     setIsLoggingIn(true);
     setLoginError("");
     try {
-      const res = await fetch("http://localhost:8080/login", {
+      const res = await fetch("https://bee-empire.onrender.com/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -86,7 +86,7 @@ export default function AdminPage() {
     if (!window.confirm("Permanently delete this drop?")) return;
     const activeToken = localStorage.getItem("admin_token");
     try {
-      const res = await fetch(`http://localhost:8080/admin/products/${id}`, {
+      const res = await fetch(`https://bee-empire.onrender.com/admin/products/${id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${activeToken}` },
       });
@@ -98,7 +98,7 @@ export default function AdminPage() {
   const handleToggleNew = async (id: number) => {
     const activeToken = localStorage.getItem("admin_token");
     try {
-      const res = await fetch(`http://localhost:8080/admin/products/${id}/toggle-new`, {
+      const res = await fetch(`https://bee-empire.onrender.com/admin/products/${id}/toggle-new`, {
         method: "PATCH",
         headers: { "Authorization": `Bearer ${activeToken}` },
       });
@@ -123,7 +123,7 @@ export default function AdminPage() {
     if (imageFile) submitData.append("image", imageFile);
 
     try {
-      const res = await fetch("http://localhost:8080/admin/products", {
+      const res = await fetch("https://bee-empire.onrender.com/admin/products", {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` },
         body: submitData,

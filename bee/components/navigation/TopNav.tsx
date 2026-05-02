@@ -45,7 +45,7 @@ export default function TopNav() {
       <nav className="w-full flex items-center justify-between px-5 md:px-12 py-5 bg-boutique-light dark:bg-boutique-dark sticky top-0 z-40 drop-shadow-sm transition-colors duration-500">
         
         {/* LEFT: Brand Logo */}
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           <Link 
             href="/" 
             className="font-script text-4xl md:text-5xl font-bold tracking-wider text-neutral-900 dark:text-neutral-50 hover:opacity-80 transition-opacity whitespace-nowrap"
