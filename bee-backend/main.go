@@ -59,15 +59,13 @@ func CreateProduct(c *gin.Context) {
 	name := c.PostForm("name")
 	priceStr := c.PostForm("price")
 	category := c.PostForm("category")
-	
-	// CATCHING THE NEW DATA
 	colors := c.PostForm("colors")
 	sizes := c.PostForm("sizes")
 	stockStr := c.PostForm("stock")
 	isNewStr := c.PostForm("isNew")
 
 	price, _ := strconv.ParseFloat(priceStr, 64)
-	stock, _ := strconv.Atoi(stockStr) // Converts the stock string to an integer
+	stock, _ := strconv.Atoi(stockStr)
 	isNew := isNewStr == "true"
 
 	file, err := c.FormFile("image")
@@ -90,7 +88,6 @@ func CreateProduct(c *gin.Context) {
 		}
 	}
 
-	// SAVING THE NEW DATA TO POSTGRES
 	newProduct := Product{
 		Name:     name,
 		Price:    price,
@@ -132,22 +129,30 @@ func ToggleIsNew(c *gin.Context) {
 
 func main() {
 	if err := godotenv.Load(); err != nil {
-		log.Println("Warning: No .env file found.")
+		log.Println("Warning: No .env file found. This is normal in production.")
 	}
 
 	ConnectDatabase()
 
+	// In production, we want gin to run in release mode
+	if os.Getenv("GIN_MODE") == "release" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	r := gin.Default()
 
+	// CORS Configuration to allow Render and Vercel domains later
 	r.Use(cors.New(cors.Config{
 		AllowAllOrigins:  true,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
 	}))
 
+	// Public Routes
 	r.GET("/products", GetProducts)
 	r.POST("/login", Login)
 
+	// Protected Admin Routes
 	admin := r.Group("/admin")
 	admin.Use(AuthRequired())
 	{
@@ -156,5 +161,12 @@ func main() {
 		admin.PATCH("/products/:id/toggle-new", ToggleIsNew)
 	}
 
-	r.Run(":8080")
+	// Dynamic Port Binding (Crucial for Render)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080" // Fallback for local development
+	}
+	
+	log.Printf("🚀 Server starting on port %s", port)
+	r.Run(":" + port)
 }
