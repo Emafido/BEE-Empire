@@ -9,7 +9,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// Single source of truth for JWT Secret
 var jwtSecret = []byte("super_secret_key_change_in_production")
 
 type Product struct {

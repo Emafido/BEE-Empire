@@ -46,7 +46,6 @@ func Login(c *gin.Context) {
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 	})
 
-	// Uses jwtSecret defined in models.go
 	tokenString, err := token.SignedString(jwtSecret)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
@@ -60,13 +59,15 @@ func CreateProduct(c *gin.Context) {
 	name := c.PostForm("name")
 	priceStr := c.PostForm("price")
 	category := c.PostForm("category")
+	
+	// CATCHING THE NEW DATA
 	colors := c.PostForm("colors")
 	sizes := c.PostForm("sizes")
 	stockStr := c.PostForm("stock")
 	isNewStr := c.PostForm("isNew")
 
 	price, _ := strconv.ParseFloat(priceStr, 64)
-	stock, _ := strconv.Atoi(stockStr)
+	stock, _ := strconv.Atoi(stockStr) // Converts the stock string to an integer
 	isNew := isNewStr == "true"
 
 	file, err := c.FormFile("image")
@@ -89,6 +90,7 @@ func CreateProduct(c *gin.Context) {
 		}
 	}
 
+	// SAVING THE NEW DATA TO POSTGRES
 	newProduct := Product{
 		Name:     name,
 		Price:    price,
@@ -113,6 +115,21 @@ func DeleteProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Product deleted successfully"})
 }
 
+func ToggleIsNew(c *gin.Context) {
+	id := c.Param("id")
+	var product Product
+	
+	if err := DB.First(&product, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
+		return
+	}
+
+	product.IsNew = !product.IsNew
+	DB.Save(&product)
+	
+	c.JSON(http.StatusOK, product)
+}
+
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("Warning: No .env file found.")
@@ -124,7 +141,7 @@ func main() {
 
 	r.Use(cors.New(cors.Config{
 		AllowAllOrigins:  true,
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
 	}))
 
@@ -136,6 +153,7 @@ func main() {
 	{
 		admin.POST("/products", CreateProduct)
 		admin.DELETE("/products/:id", DeleteProduct)
+		admin.PATCH("/products/:id/toggle-new", ToggleIsNew)
 	}
 
 	r.Run(":8080")

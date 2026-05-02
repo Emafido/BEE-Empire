@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -31,18 +31,17 @@ export default function HeroSection() {
     };
   }, []);
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.15, delayChildren: 0.1 } },
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as const } },
   };
 
   return (
-    // FIXED: Changed to min-h on mobile so it can breathe, strict h only on md screens. Added pb-16 for mobile spacing.
     <section className="relative w-full min-h-[calc(100vh-80px)] md:h-[calc(100vh-80px)] flex items-center justify-center overflow-hidden bg-boutique-light dark:bg-boutique-dark transition-colors duration-500 pt-10 pb-16 md:pt-0 md:pb-0">
       
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] md:w-[40vw] md:h-[40vw] bg-amber-600/5 dark:bg-amber-500/5 blur-[100px] rounded-full pointer-events-none" />
@@ -68,7 +67,7 @@ export default function HeroSection() {
             className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50 uppercase leading-[0.95]"
           >
             Command <br className="hidden md:block" />
-            <span className="text-amber-600 dark:text-amber-500 italic font-script lowercase tracking-normal text-6xl md:text-7xl lg:text-8xl xl:text-9xl ml-0 md:ml-[-5px]">
+            <span className="text-amber-600 dark:text-amber-500 italic font-script lowercase tracking-normal text-6xl md:text-7xl lg:text-8xl xl:text-9xl ml-0 md:-ml-1.25">
               the
             </span> <br className="hidden md:block" />
             Room.
@@ -86,28 +85,31 @@ export default function HeroSection() {
               href="/collection" 
               className="group relative inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-neutral-900 dark:bg-amber-600 text-neutral-50 dark:text-neutral-900 font-bold text-sm md:text-base uppercase tracking-widest overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-neutral-900/20 dark:shadow-amber-600/20"
             >
-              <span className="absolute inset-0 w-full h-full -mt-1 rounded-lg opacity-30 bg-gradient-to-b from-transparent via-transparent to-black" />
+              <span className="absolute inset-0 w-full h-full -mt-1 rounded-lg opacity-30 bg-linear-to-b from-transparent via-transparent to-black" />
               <span className="relative">Shop the Drop</span>
             </Link>
           </motion.div>
         </div>
 
         {/* RIGHT COLUMN: The Editorial Model */}
-        {/* FIXED: Gave mobile a hard height of 400px so it never squishes */}
         <motion.div 
           variants={itemVariants}
-          className="w-full md:w-1/2 h-[400px] md:h-[65vh] max-h-[600px] mt-12 md:mt-0 relative flex justify-center md:justify-end z-10"
+          className="w-full md:w-1/2 h-100 md:h-[65vh] max-h-150 mt-12 md:mt-0 relative flex justify-center md:justify-end z-10"
         >
-          <div className="relative w-[90%] max-w-[380px] md:max-w-[480px] h-full">
+          <div className="relative w-[90%] max-w-95 md:max-w-120 h-full">
             
-            <div className={`w-full h-full overflow-hidden drop-shadow-2xl relative ${imageError ? 'bg-neutral-200 dark:bg-neutral-800 animate-pulse' : ''}`}>
+            <div 
+              className={`w-full h-full overflow-hidden drop-shadow-2xl relative ${imageError ? 'bg-neutral-200 dark:bg-neutral-800 animate-pulse' : ''}`}
+              style={{ position: 'relative' }}
+            >
               <Image 
                 src="/hero-model.jpg" 
-                alt="BEE Empire's Latest Fashion" 
-                fill
-                className="object-cover object-top" 
-                priority
-                onError={() => setImageError(true)}
+                alt="Hero Model" 
+                fill 
+                priority 
+                sizes="(max-width: 768px) 100vw, 50vw" 
+                className="object-cover" 
+                onError={() => setImageError(true)} 
               />
             </div>
 

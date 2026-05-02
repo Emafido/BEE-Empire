@@ -3,172 +3,217 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { X, Minus, Plus } from "lucide-react";
-import { useCartStore } from "@/store/cartStore";
-import { Product } from "./FashionCard";
 
-interface QuickShopModalProps {
-  product: Product;
-  isOpen: boolean;
-  onClose: () => void;
+interface Product {
+  ID: number;
+  name?: string; Name?: string;
+  price?: number; Price?: number;
+  category?: string; Category?: string;
+  imageUrl?: string; ImageUrl?: string;
+  colors?: string; Colors?: string;
+  sizes?: string; Sizes?: string;
+  stock?: number; Stock?: number;
+  isNew?: boolean; IsNew?: boolean;
 }
 
-const FALLBACK_COLORS = ["Black", "Nude", "Sky Blue", "Brown"];
-const FALLBACK_SIZES = ["S", "M", "L", "XL"];
+interface QuickShopModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  product: Product | null;
+}
 
-export default function QuickShopModal({ product, isOpen, onClose }: QuickShopModalProps) {
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+export default function QuickShopModal({ isOpen, onClose, product }: QuickShopModalProps) {
+  const [selectedColor, setSelectedColor] = useState<string>("");
+  const [selectedSize, setSelectedSize] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
-  const addItem = useCartStore((state) => state.addItem);
 
-  // Strictly lock the body scroll and handle cleanup
+  const pName = product?.name || product?.Name || "";
+  const pPrice = Number(product?.price ?? product?.Price ?? 0);
+  const pCategory = product?.category || product?.Category || "";
+  const pImageUrl = product?.imageUrl || product?.ImageUrl || "";
+  const rawColors = product?.colors || product?.Colors || "";
+  const rawSizes = product?.sizes || product?.Sizes || "";
+  const pStock = Number(product?.stock ?? product?.Stock ?? 0);
+
+  // 1. THE BODY SCROLL LOCK FIX
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = "";
+      document.body.style.overflow = "unset";
     }
+    // Cleanup function in case the component unmounts
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = "unset";
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (product && isOpen) {
+      const colorsArr = rawColors ? rawColors.split(',').map(c => c.trim()).filter(Boolean) : [];
+      const sizesArr = rawSizes ? rawSizes.split(',').map(s => s.trim()).filter(Boolean) : [];
 
-  const handleAddToCart = () => {
-    if (!selectedColor || !selectedSize) return;
-    addItem(product, quantity, selectedColor, selectedSize);
-    setSelectedColor(null);
-    setSelectedSize(null);
+      const timer = setTimeout(() => {
+        if (colorsArr.length > 0) setSelectedColor(colorsArr[0]);
+        if (sizesArr.length > 0) setSelectedSize(sizesArr[0]);
+        setQuantity(1);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [product, isOpen, rawColors, rawSizes]);
+
+  if (!isOpen || !product) return null;
+
+  const handleDecrease = () => {
+    if (quantity > 1) setQuantity(quantity - 1);
+  };
+
+  const handleIncrease = () => {
+    if (quantity < pStock) {
+      setQuantity(quantity + 1);
+    }
+  };
+
+  const handleClose = () => {
     setQuantity(1);
     onClose();
   };
 
-  const isReadyToAdd = selectedColor && selectedSize;
+  const availableColors = rawColors ? rawColors.split(',').map(c => c.trim()).filter(Boolean) : [];
+  const availableSizes = rawSizes ? rawSizes.split(',').map(s => s.trim()).filter(Boolean) : [];
 
   return (
-    <div className="fixed inset-0 z-[100]">
-      {/* 1. Static Backdrop */}
+    <div 
+      className="fixed inset-0 z-9999 flex items-center justify-center bg-black/90 p-4 sm:p-6 backdrop-blur-sm transition-opacity"
+      onClick={handleClose}
+    >
       <div 
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+        className="bg-[#121212] w-full max-w-5xl max-h-[90vh] rounded-md overflow-hidden flex flex-col md:flex-row shadow-2xl relative animate-in fade-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()} 
+      >
+        <button 
+          onClick={handleClose}
+          className="absolute top-3 right-3 z-100 bg-black/80 hover:bg-red-600 p-2 rounded-full transition-colors text-white border border-neutral-700 hover:border-red-600 shadow-lg"
+        >
+          <X className="w-5 h-5" />
+        </button>
 
-      {/* 2. Scrollable Container for the Modal itself */}
-      <div className="fixed inset-0 overflow-y-auto overscroll-none">
-        <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-          
-          {/* 3. The Actual Modal Panel */}
-          <div className="relative w-full max-w-4xl bg-boutique-light dark:bg-boutique-dark text-left shadow-2xl animate-in zoom-in-95 duration-300 my-8 flex flex-col md:flex-row overflow-hidden rounded-sm">
+        {/* IMAGE FIX: Shrunk to h-48 on mobile to save space, completely proportional on desktop */}
+        <div 
+          className="w-full md:w-1/2 h-48 md:h-auto md:min-h-120 bg-neutral-900 relative shrink-0 p-4"
+          style={{ position: 'relative' }}
+        >
+          {pImageUrl ? (
+            <Image 
+              src={pImageUrl} 
+              alt={pName} 
+              fill 
+              priority
+              sizes="(max-width: 768px) 100vw, 50vw" 
+              className="object-contain" 
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-neutral-700 uppercase tracking-widest text-xs font-bold">
+              No Image
+            </div>
+          )}
+        </div>
+
+        {/* DETAILS FIX: Tightened paddings (p-5 md:p-8) and margins to condense content */}
+        <div className="w-full md:w-1/2 flex-1 flex flex-col overflow-y-auto p-5 md:p-8 text-white">
+          <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-neutral-400 mb-1 shrink-0">
+            {pCategory}
+          </span>
+          <h2 className="text-2xl md:text-3xl font-bold mb-1 pr-8 shrink-0">{pName}</h2>
+          <p className="text-xl md:text-2xl font-bold text-amber-500 mb-4 md:mb-5 shrink-0">₦{pPrice.toLocaleString()}</p>
+
+          {availableColors.length > 0 && (
+            <div className="mb-4 shrink-0">
+              <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-neutral-400 mb-2">
+                Color: <span className="text-white ml-2">{selectedColor || 'SELECT'}</span>
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {availableColors.map((color) => (
+                  <button 
+                    key={color}
+                    onClick={() => setSelectedColor(color)}
+                    className={`px-3 py-1.5 border text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all ${
+                      selectedColor === color 
+                        ? "border-amber-500 text-amber-500 bg-amber-500/10" 
+                        : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
+                    }`}
+                  >
+                    {color}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {availableSizes.length > 0 && (
+            <div className="mb-4 shrink-0">
+              <div className="flex justify-between items-center mb-2">
+                <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-neutral-400">
+                  Size: <span className="text-white ml-2">{selectedSize || 'SELECT'}</span>
+                </p>
+                <button className="text-[10px] md:text-xs text-amber-500 hover:underline">Size Guide</button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {availableSizes.map((size) => (
+                  <button 
+                    key={size}
+                    onClick={() => setSelectedSize(size)}
+                    className={`w-10 h-10 flex items-center justify-center border text-[10px] md:text-xs font-bold uppercase transition-all ${
+                      selectedSize === size 
+                        ? "border-amber-500 text-amber-500 bg-amber-500/10" 
+                        : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-auto pt-4 shrink-0">
+            <div className="flex justify-between items-end mb-2">
+              <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-neutral-400">Quantity</p>
+              <p className={`text-[10px] md:text-xs font-bold ${pStock > 0 ? "text-green-500" : "text-red-500"}`}>
+                {pStock > 0 ? `${pStock} Units Available` : "Sold Out"}
+              </p>
+            </div>
             
-            <button 
-              onClick={onClose}
-              className="absolute top-4 right-4 z-20 p-2 bg-white/50 dark:bg-black/50 backdrop-blur-md rounded-full text-neutral-900 dark:text-white hover:bg-white dark:hover:bg-black transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Left Side: Image */}
-            <div className="w-full md:w-1/2 h-[400px] md:h-auto relative bg-neutral-200 dark:bg-neutral-800 flex-shrink-0">
-              <Image 
-                src={product.imageUrl} 
-                alt={product.name} 
-                fill 
-                className="object-cover object-top"
-              />
-            </div>
-
-            {/* Right Side: Controls */}
-            <div className="w-full md:w-1/2 p-6 sm:p-8 md:p-10 flex flex-col justify-center">
-              <p className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-2">{product.category}</p>
-              <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-neutral-50 mb-2 leading-tight">{product.name}</h2>
-              <p className="text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-500 mb-8">₦{product.price.toLocaleString()}</p>
-
-              {/* Color Selection */}
-              <div className="mb-6">
-                <div className="flex justify-between items-end mb-3">
-                  <span className="text-sm font-bold uppercase tracking-widest text-neutral-900 dark:text-neutral-50">
-                    Color: <span className="text-neutral-500">{selectedColor || "Select"}</span>
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2 sm:gap-3">
-                  {FALLBACK_COLORS.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => setSelectedColor(color)}
-                      className={`px-3 py-2 sm:px-4 text-xs sm:text-sm font-bold uppercase tracking-wider transition-colors border ${
-                        selectedColor === color 
-                          ? "border-neutral-900 dark:border-white bg-neutral-900 dark:bg-white text-white dark:text-neutral-900" 
-                          : "border-neutral-300 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-neutral-900 dark:hover:border-white"
-                      }`}
-                    >
-                      {color}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Size Selection */}
-              <div className="mb-8">
-                <div className="flex justify-between items-end mb-3">
-                  <span className="text-sm font-bold uppercase tracking-widest text-neutral-900 dark:text-neutral-50">
-                    Size: <span className="text-neutral-500">{selectedSize || "Select"}</span>
-                  </span>
-                  <button className="text-xs font-bold underline text-amber-600 dark:text-amber-500">Size Guide</button>
-                </div>
-                <div className="flex flex-wrap gap-2 sm:gap-3">
-                  {FALLBACK_SIZES.map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center border text-sm font-bold uppercase transition-all ${
-                        selectedSize === size 
-                          ? "border-neutral-900 dark:border-white bg-neutral-900 dark:bg-white text-white dark:text-neutral-900" 
-                          : "border-neutral-300 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-neutral-900 dark:hover:border-white"
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Quantity Selector */}
-              <div className="mb-8">
-                <span className="text-sm font-bold uppercase tracking-widest text-neutral-900 dark:text-neutral-50 block mb-3">Quantity</span>
-                <div className="flex items-center border border-neutral-300 dark:border-neutral-700 w-28 sm:w-32">
-                  <button 
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="flex-1 text-center font-bold text-sm">{quantity}</span>
-                  <button 
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Add to Cart Button */}
+            <div className="flex items-center w-28 md:w-32 border border-neutral-700 mb-4 md:mb-5">
               <button 
-                onClick={handleAddToCart}
-                disabled={!isReadyToAdd}
-                className={`w-full py-4 mt-auto font-bold uppercase tracking-widest text-xs sm:text-sm transition-all shadow-lg ${
-                  isReadyToAdd 
-                    ? "bg-amber-600 hover:bg-amber-500 text-white cursor-pointer active:scale-[0.98]" 
-                    : "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 cursor-not-allowed"
-                }`}
+                onClick={handleDecrease} 
+                disabled={quantity <= 1 || pStock === 0}
+                className="w-8 md:w-10 h-10 flex items-center justify-center hover:bg-neutral-800 disabled:opacity-50 transition-colors"
               >
-                {isReadyToAdd ? `Add to Bag - ₦${(product.price * quantity).toLocaleString()}` : "Select Options"}
+                <Minus className="w-3 h-3 md:w-4 md:h-4 text-neutral-400" />
               </button>
-
+              
+              <div className="flex-1 text-center font-bold text-sm">
+                {pStock === 0 ? 0 : quantity}
+              </div>
+              
+              <button 
+                onClick={handleIncrease}
+                disabled={quantity >= pStock || pStock === 0} 
+                className="w-8 md:w-10 h-10 flex items-center justify-center hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+              >
+                <Plus className="w-3 h-3 md:w-4 md:h-4 text-neutral-400" />
+              </button>
             </div>
+
+            <button 
+              disabled={pStock === 0}
+              className="w-full bg-[#1A1A1A] hover:bg-amber-600 text-white py-3 font-bold uppercase tracking-widest text-xs md:text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-800 hover:border-amber-600"
+            >
+              {pStock > 0 ? 'Select Options' : 'Out of Stock'}
+            </button>
           </div>
+          
         </div>
       </div>
     </div>
