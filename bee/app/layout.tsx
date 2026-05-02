@@ -7,7 +7,6 @@ const inter = Inter({ subsets: ['latin'] });
 const storeName = "BEE Empire's Boutique";
 const storeDescription = "Curated premium fashion drops for the modern, unapologetic woman. Highly limited collections.";
 
-// The Viewport export handles the browser theme color 
 export const viewport: Viewport = {
   themeColor: "#000000",
 };
