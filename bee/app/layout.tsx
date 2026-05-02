@@ -7,12 +7,15 @@ const inter = Inter({ subsets: ['latin'] });
 const storeName = "BEE Empire's Boutique";
 const storeDescription = "Curated premium fashion drops for the modern, unapologetic woman. Highly limited collections.";
 
-// THE FIX: Move themeColor into its own viewport export
+// The Viewport export handles the browser theme color 
 export const viewport: Viewport = {
   themeColor: "#000000",
 };
 
 export const metadata: Metadata = {
+  // THE FIX: Telling Next.js exactly where your live site lives for accurate link sharing
+  metadataBase: new URL("https://thebee-empire.vercel.app"),
+  
   title: {
     default: storeName,
     template: `%s | ${storeName}`, 
