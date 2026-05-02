@@ -41,7 +41,11 @@ export default function CartDrawer() {
       const variants = [item.selectedColor, item.selectedSize].filter(Boolean).join(" / ");
       const variantText = variants ? ` (${variants})` : "";
       
-      text += `${item.quantity}x ${item.name}${variantText} - ₦${(item.price * item.quantity).toLocaleString()}\n`;
+      // FIX: Added fallbacks for name and price
+      const safeName = item.name || "Item";
+      const safePrice = item.price || 0;
+      
+      text += `${item.quantity}x ${safeName}${variantText} - ₦${(safePrice * item.quantity).toLocaleString()}\n`;
     });
     
     text += `\n*Order Total: ₦${currentTotal.toLocaleString()}*`;
@@ -94,32 +98,39 @@ export default function CartDrawer() {
               <p className="text-sm font-medium uppercase tracking-widest">Your bag is empty.</p>
             </div>
           ) : (
-            items.map((item) => (
-              <div key={item.cartItemId} className="flex gap-4">
-                <div className="relative w-20 h-24 bg-neutral-200 dark:bg-neutral-800 rounded-sm overflow-hidden shrink-0">
-                  <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
-                </div>
-                <div className="flex-1 flex flex-col justify-between py-1">
-                  <div>
-                    <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-50 leading-tight">{item.name}</h3>
-                    <p className="text-xs text-neutral-500 uppercase tracking-widest mt-1 flex flex-wrap gap-1">
-                      <span>{item.category}</span>
-                      {item.selectedColor && <span> • {item.selectedColor}</span>}
-                      {item.selectedSize && <span> • Size {item.selectedSize}</span>}
-                    </p>
+            items.map((item) => {
+              // FIX: Fallbacks for rendering to ensure TypeScript is happy
+              const safeImageUrl = item.imageUrl || "/mock-1.jpg";
+              const safeName = item.name || "Item";
+              const safePrice = item.price || 0;
+
+              return (
+                <div key={item.cartItemId} className="flex gap-4">
+                  <div className="relative w-20 h-24 bg-neutral-200 dark:bg-neutral-800 rounded-sm overflow-hidden shrink-0">
+                    <Image src={safeImageUrl} alt={safeName} fill className="object-cover" />
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-sm font-bold text-amber-600 dark:text-amber-500">₦{item.price.toLocaleString()}</p>
-                    <div className="flex items-center gap-4">
-                      <span className="text-xs font-bold text-neutral-500">QTY: {item.quantity}</span>
-                      <button onClick={() => removeItem(item.cartItemId)} className="text-neutral-400 hover:text-red-500 transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                  <div className="flex-1 flex flex-col justify-between py-1">
+                    <div>
+                      <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-50 leading-tight">{safeName}</h3>
+                      <p className="text-xs text-neutral-500 uppercase tracking-widest mt-1 flex flex-wrap gap-1">
+                        <span>{item.category}</span>
+                        {item.selectedColor && <span> • {item.selectedColor}</span>}
+                        {item.selectedSize && <span> • Size {item.selectedSize}</span>}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-sm font-bold text-amber-600 dark:text-amber-500">₦{safePrice.toLocaleString()}</p>
+                      <div className="flex items-center gap-4">
+                        <span className="text-xs font-bold text-neutral-500">QTY: {item.quantity}</span>
+                        <button onClick={() => removeItem(item.cartItemId)} className="text-neutral-400 hover:text-red-500 transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
