@@ -50,7 +50,7 @@ export default function TopNav() {
             href="/" 
             className="font-script text-4xl md:text-5xl font-bold tracking-wider text-neutral-900 dark:text-neutral-50 hover:opacity-80 transition-opacity whitespace-nowrap"
           >
-            BEE Empire&apos;s
+            BEE&apos;s Empire
           </Link>
         </div>
 

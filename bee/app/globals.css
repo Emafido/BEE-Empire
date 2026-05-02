@@ -1,18 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  --font-script: var(--font-script);
+  --font-sans: var(--font-inter);
   
-  /* Our custom High-Fashion Palette */
-  --color-boutique-light: #FDFBF7; /* Rich Cream */
-  --color-boutique-dark: #0F0D0C;  /* Midnight Espresso / Warm Obsidian */
-  --color-boutique-gold: #D4AF37;  /* Metallic Gold */
+  /* We re-map "script" to Syne for that energetic, wide stylish look */
+  --font-script: var(--font-syne);
+  --font-heading: var(--font-montserrat);
+  
+  --color-boutique-light: #fcfaf8;
+  --color-boutique-dark: #0f0d0c;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
 }
 
-/* This is the magic line that forces Tailwind v4 to respect our toggle button */
-@custom-variant dark (&:is(.dark *));
+@utility font-script {
+  font-family: var(--font-syne), sans-serif;
+  letter-spacing: -0.02em; /* Tighter for more energy */
+}
 
-/* Smooth global transitions for the theme swap */
+@utility font-heading {
+  font-family: var(--font-montserrat), sans-serif;
+  text-transform: uppercase;
+}
+
+@custom-variant dark (&:is(.dark, .dark *));
+
 body {
-  @apply transition-colors duration-500 ease-in-out;
+  @apply bg-boutique-light dark:bg-boutique-dark text-neutral-900 dark:text-neutral-50 transition-colors duration-500 ease-in-out;
 }
