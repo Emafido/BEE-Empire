@@ -1,8 +1,19 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
+// THE FIX: Added curly braces around ThemeProvider
+import { ThemeProvider } from '@/components/ThemeProvider'; 
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ 
+  subsets: ['latin'],
+  variable: '--font-inter',
+});
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-playfair',
+  style: ['italic', 'normal'],
+});
 
 const storeName = "BEE Empire's Boutique";
 const storeDescription = "Curated premium fashion drops for the modern, unapologetic woman. Highly limited collections.";
@@ -12,9 +23,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  // THE FIX: Telling Next.js exactly where your live site lives for accurate link sharing
   metadataBase: new URL("https://thebee-empire.vercel.app"),
-  
   title: {
     default: storeName,
     template: `%s | ${storeName}`, 
@@ -23,7 +32,6 @@ export const metadata: Metadata = {
   keywords: ["fashion store", "boutique clothing", "limited drops", "women's fashion", "premium aesthetic"],
   authors: [{ name: storeName }],
   creator: storeName,
-  
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -44,8 +52,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
