@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-inter);
+  /* Jakarta becomes our primary energetic UI font */
+  --font-sans: var(--font-jakarta);
   
-  /* We re-map "script" to Syne for that energetic, wide stylish look */
-  --font-script: var(--font-syne);
-  --font-heading: var(--font-montserrat);
+  /* Bebas Neue becomes our high-impact condensed branding font */
+  --font-script: var(--font-bebas);
   
   --color-boutique-light: #fcfaf8;
   --color-boutique-dark: #0f0d0c;
@@ -14,13 +14,13 @@
 }
 
 @utility font-script {
-  font-family: var(--font-syne), sans-serif;
-  letter-spacing: -0.02em; /* Tighter for more energy */
+  font-family: var(--font-bebas), sans-serif;
+  letter-spacing: 0.05em; /* Condensed fonts love a little breathing room */
+  line-height: 1;
 }
 
-@utility font-heading {
-  font-family: var(--font-montserrat), sans-serif;
-  text-transform: uppercase;
+@utility font-sans {
+  font-family: var(--font-jakarta), var(--font-inter), sans-serif;
 }
 
 @custom-variant dark (&:is(.dark, .dark *));

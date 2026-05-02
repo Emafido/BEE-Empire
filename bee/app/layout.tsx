@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Syne, Montserrat } from 'next/font/google';
+import { Inter, Bebas_Neue, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/ThemeProvider'; 
 
@@ -8,18 +8,18 @@ const inter = Inter({
   variable: '--font-inter',
 });
 
-// The "Stylish/Energetic" Font
-const syne = Syne({
+// The "Energetic & Space-Efficient" Branding Font
+const bebas = Bebas_Neue({
   subsets: ['latin'],
-  variable: '--font-syne',
-  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-bebas',
+  weight: '400', // Bebas Neue only has 400, but it is naturally bold
 });
 
-// The "Active" Font
-const montserrat = Montserrat({
+// The "Stylish & Modern" UI Font
+const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  variable: '--font-montserrat',
-  weight: ['700', '900'],
+  variable: '--font-jakarta',
+  weight: ['400', '500', '600', '700', '800'],
 });
 
 const storeName = "BEE Empire's Boutique";
@@ -44,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${syne.variable} ${montserrat.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${bebas.variable} ${jakarta.variable}`}>
       <body className="font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           {children}
