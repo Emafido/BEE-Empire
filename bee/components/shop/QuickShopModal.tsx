@@ -35,16 +35,22 @@ export default function QuickShopModal({ isOpen, onClose, product }: QuickShopMo
   const rawSizes = product?.sizes || product?.Sizes || "";
   const pStock = Number(product?.stock ?? product?.Stock ?? 0);
 
-  // 1. THE BODY SCROLL LOCK FIX
+  // ULTRA STRICT SCROLL LOCK
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
+      // This helps prevent background scrolling on mobile Safari
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
     } else {
       document.body.style.overflow = "unset";
+      document.body.style.position = "static";
+      document.body.style.width = "auto";
     }
-    // Cleanup function in case the component unmounts
     return () => {
       document.body.style.overflow = "unset";
+      document.body.style.position = "static";
+      document.body.style.width = "auto";
     };
   }, [isOpen]);
 
@@ -84,23 +90,29 @@ export default function QuickShopModal({ isOpen, onClose, product }: QuickShopMo
 
   return (
     <div 
-      className="fixed inset-0 z-9999 flex items-center justify-center bg-black/90 p-4 sm:p-6 backdrop-blur-sm transition-opacity"
+      className="fixed inset-0 z-9999 flex items-center justify-center bg-black/95 p-3 sm:p-6 backdrop-blur-md transition-opacity overscroll-none"
       onClick={handleClose}
+      style={{ touchAction: 'none' }} // Stops mobile bounce effect on the black overlay
     >
+      {/* 
+        max-h-[95dvh]: Uses Dynamic Viewport Height so it always stays inside the phone screen, 
+        even when the browser's address bar appears. 
+      */}
       <div 
-        className="bg-[#121212] w-full max-w-5xl max-h-[90vh] rounded-md overflow-hidden flex flex-col md:flex-row shadow-2xl relative animate-in fade-in zoom-in-95 duration-200"
+        className="bg-[#121212] w-full max-w-5xl max-h-[95dvh] rounded-md overflow-hidden flex flex-col md:flex-row shadow-2xl relative animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()} 
+        style={{ touchAction: 'auto' }} // Re-enables touch inside the modal if it ever needs to scroll
       >
         <button 
           onClick={handleClose}
-          className="absolute top-3 right-3 z-100 bg-black/80 hover:bg-red-600 p-2 rounded-full transition-colors text-white border border-neutral-700 hover:border-red-600 shadow-lg"
+          className="absolute top-2 right-2 md:top-4 md:right-4 z-100 bg-black/80 hover:bg-red-600 p-1.5 md:p-2 rounded-full transition-colors text-white border border-neutral-700 hover:border-red-600 shadow-lg"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4 md:w-5 md:h-5" />
         </button>
 
-        {/* IMAGE FIX: Shrunk to h-48 on mobile to save space, completely proportional on desktop */}
+        {/* IMAGE FIX: Slashed height on mobile to h-[140px] to guarantee everything fits without scrolling */}
         <div 
-          className="w-full md:w-1/2 h-48 md:h-auto md:min-h-120 bg-neutral-900 relative shrink-0 p-4"
+          className="w-full md:w-1/2 h-[140px] sm:h-48 md:h-auto md:min-h-[480px] bg-neutral-900 relative shrink-0 p-2 md:p-4"
           style={{ position: 'relative' }}
         >
           {pImageUrl ? (
@@ -113,31 +125,31 @@ export default function QuickShopModal({ isOpen, onClose, product }: QuickShopMo
               className="object-contain" 
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-neutral-700 uppercase tracking-widest text-xs font-bold">
+            <div className="w-full h-full flex items-center justify-center text-neutral-700 uppercase tracking-widest text-[10px] font-bold">
               No Image
             </div>
           )}
         </div>
 
-        {/* DETAILS FIX: Tightened paddings (p-5 md:p-8) and margins to condense content */}
-        <div className="w-full md:w-1/2 flex-1 flex flex-col overflow-y-auto p-5 md:p-8 text-white">
-          <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-neutral-400 mb-1 shrink-0">
+        {/* DETAILS FIX: Massively condensed margins (mb-2 instead of mb-6) and scaled down text for mobile */}
+        <div className="w-full md:w-1/2 flex-1 flex flex-col p-4 md:p-8 text-white overflow-y-auto">
+          <span className="text-[9px] md:text-xs font-bold uppercase tracking-widest text-neutral-400 mb-0.5 shrink-0">
             {pCategory}
           </span>
-          <h2 className="text-2xl md:text-3xl font-bold mb-1 pr-8 shrink-0">{pName}</h2>
-          <p className="text-xl md:text-2xl font-bold text-amber-500 mb-4 md:mb-5 shrink-0">₦{pPrice.toLocaleString()}</p>
+          <h2 className="text-xl md:text-3xl font-bold mb-0.5 pr-8 shrink-0 leading-tight">{pName}</h2>
+          <p className="text-lg md:text-2xl font-bold text-amber-500 mb-3 md:mb-5 shrink-0 leading-none">₦{pPrice.toLocaleString()}</p>
 
           {availableColors.length > 0 && (
-            <div className="mb-4 shrink-0">
-              <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-neutral-400 mb-2">
+            <div className="mb-3 md:mb-4 shrink-0">
+              <p className="text-[9px] md:text-xs font-bold uppercase tracking-widest text-neutral-400 mb-1.5">
                 Color: <span className="text-white ml-2">{selectedColor || 'SELECT'}</span>
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 md:gap-2">
                 {availableColors.map((color) => (
                   <button 
                     key={color}
                     onClick={() => setSelectedColor(color)}
-                    className={`px-3 py-1.5 border text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all ${
+                    className={`px-2 py-1 md:px-3 md:py-1.5 border text-[9px] md:text-xs font-bold uppercase tracking-widest transition-all ${
                       selectedColor === color 
                         ? "border-amber-500 text-amber-500 bg-amber-500/10" 
                         : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
@@ -151,19 +163,19 @@ export default function QuickShopModal({ isOpen, onClose, product }: QuickShopMo
           )}
 
           {availableSizes.length > 0 && (
-            <div className="mb-4 shrink-0">
-              <div className="flex justify-between items-center mb-2">
-                <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-neutral-400">
+            <div className="mb-3 md:mb-4 shrink-0">
+              <div className="flex justify-between items-center mb-1.5">
+                <p className="text-[9px] md:text-xs font-bold uppercase tracking-widest text-neutral-400">
                   Size: <span className="text-white ml-2">{selectedSize || 'SELECT'}</span>
                 </p>
-                <button className="text-[10px] md:text-xs text-amber-500 hover:underline">Size Guide</button>
+                <button className="text-[9px] md:text-xs text-amber-500 hover:underline">Size Guide</button>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 md:gap-2">
                 {availableSizes.map((size) => (
                   <button 
                     key={size}
                     onClick={() => setSelectedSize(size)}
-                    className={`w-10 h-10 flex items-center justify-center border text-[10px] md:text-xs font-bold uppercase transition-all ${
+                    className={`w-7 h-7 md:w-10 md:h-10 flex items-center justify-center border text-[9px] md:text-xs font-bold uppercase transition-all ${
                       selectedSize === size 
                         ? "border-amber-500 text-amber-500 bg-amber-500/10" 
                         : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
@@ -176,31 +188,31 @@ export default function QuickShopModal({ isOpen, onClose, product }: QuickShopMo
             </div>
           )}
 
-          <div className="mt-auto pt-4 shrink-0">
-            <div className="flex justify-between items-end mb-2">
-              <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-neutral-400">Quantity</p>
-              <p className={`text-[10px] md:text-xs font-bold ${pStock > 0 ? "text-green-500" : "text-red-500"}`}>
+          <div className="mt-auto pt-2 md:pt-4 shrink-0">
+            <div className="flex justify-between items-end mb-1.5 md:mb-2">
+              <p className="text-[9px] md:text-xs font-bold uppercase tracking-widest text-neutral-400">Quantity</p>
+              <p className={`text-[9px] md:text-xs font-bold ${pStock > 0 ? "text-green-500" : "text-red-500"}`}>
                 {pStock > 0 ? `${pStock} Units Available` : "Sold Out"}
               </p>
             </div>
             
-            <div className="flex items-center w-28 md:w-32 border border-neutral-700 mb-4 md:mb-5">
+            <div className="flex items-center w-24 md:w-32 border border-neutral-700 mb-3 md:mb-5">
               <button 
                 onClick={handleDecrease} 
                 disabled={quantity <= 1 || pStock === 0}
-                className="w-8 md:w-10 h-10 flex items-center justify-center hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                className="w-8 md:w-10 h-8 md:h-10 flex items-center justify-center hover:bg-neutral-800 disabled:opacity-50 transition-colors"
               >
                 <Minus className="w-3 h-3 md:w-4 md:h-4 text-neutral-400" />
               </button>
               
-              <div className="flex-1 text-center font-bold text-sm">
+              <div className="flex-1 text-center font-bold text-[10px] md:text-sm">
                 {pStock === 0 ? 0 : quantity}
               </div>
               
               <button 
                 onClick={handleIncrease}
                 disabled={quantity >= pStock || pStock === 0} 
-                className="w-8 md:w-10 h-10 flex items-center justify-center hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                className="w-8 md:w-10 h-8 md:h-10 flex items-center justify-center hover:bg-neutral-800 disabled:opacity-50 transition-colors"
               >
                 <Plus className="w-3 h-3 md:w-4 md:h-4 text-neutral-400" />
               </button>
@@ -208,7 +220,7 @@ export default function QuickShopModal({ isOpen, onClose, product }: QuickShopMo
 
             <button 
               disabled={pStock === 0}
-              className="w-full bg-[#1A1A1A] hover:bg-amber-600 text-white py-3 font-bold uppercase tracking-widest text-xs md:text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-800 hover:border-amber-600"
+              className="w-full bg-[#1A1A1A] hover:bg-amber-600 text-white py-2.5 md:py-3 font-bold uppercase tracking-widest text-[10px] md:text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-800 hover:border-amber-600"
             >
               {pStock > 0 ? 'Select Options' : 'Out of Stock'}
             </button>
