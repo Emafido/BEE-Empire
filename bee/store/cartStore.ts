@@ -31,8 +31,8 @@ export const useCartStore = create<CartStore>()(
       
       addItem: (product, quantity, color, size) => {
         const currentItems = get().items;
-        // Create a unique ID based on the product AND its chosen variants
-        const cartItemId = `${product.id}-${color || 'none'}-${size || 'none'}`;
+        // FIX 1: Swapped product.id to product.ID
+        const cartItemId = `${product.ID}-${color || 'none'}-${size || 'none'}`;
         
         const existingItem = currentItems.find((item) => item.cartItemId === cartItemId);
 
@@ -62,7 +62,9 @@ export const useCartStore = create<CartStore>()(
       clearCart: () => set({ items: [] }),
 
       totalItems: () => get().items.reduce((total, item) => total + item.quantity, 0),
-      totalPrice: () => get().items.reduce((total, item) => total + (item.price * item.quantity), 0),
+      
+      // FIX 2: Added fallback (item.price || 0) so TypeScript knows it is always a number
+      totalPrice: () => get().items.reduce((total, item) => total + ((item.price || 0) * item.quantity), 0),
       
       openCart: () => set({ isCartOpen: true }),
       closeCart: () => set({ isCartOpen: false }),
