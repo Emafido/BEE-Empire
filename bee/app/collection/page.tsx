@@ -8,9 +8,9 @@ import { Loader2 } from "lucide-react";
 // Strict TypeScript interface for the Go API response
 interface ApiProduct {
   ID: number;
-  name: string;
-  price: number;
-  category: string;
+  name?: string;
+  price?: number;
+  category?: string;
   imageUrl?: string;
   image_url?: string;
   isNew?: boolean;
@@ -28,17 +28,20 @@ export default function CollectionPage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch("http://localhost:8080/products");
+        // CRITICAL FIX: Pointed to LIVE Render server and added cache-busting
+        const response = await fetch("https://bee-empire.onrender.com/products?t=" + new Date().getTime(), {
+          cache: "no-store"
+        });
         if (!response.ok) throw new Error("Failed to fetch");
         
         const data = await response.json();
         
+        // Match the strict FashionCard Product interface
         const formattedProducts: Product[] = data.map((item: ApiProduct) => ({
-          id: String(item.ID),
-          name: item.name,
-          price: item.price,
-          category: item.category,
-          // CRITICAL FIX: Fallback applied here to prevent Next.js crash
+          ID: item.ID,
+          name: item.name || "",
+          price: item.price || 0,
+          category: item.category || "Uncategorized",
           imageUrl: item.imageUrl || item.image_url || "/mock-1.jpg", 
           isNew: item.isNew || item.is_new || false,
         }));
@@ -56,21 +59,28 @@ export default function CollectionPage() {
   }, []);
 
   const dynamicCategories = useMemo(() => {
-    const uniqueCats = Array.from(new Set(products.map((p) => p.category)));
+    // FIX: Ensure it only ever extracts strings, never undefined
+    const uniqueCats = Array.from(new Set(products.map((p) => p.category || p.Category || ""))).filter(c => c !== "");
     return ["All", ...uniqueCats.sort()];
   }, [products]);
 
   const filteredAndSortedProducts = useMemo(() => {
     let result = products;
     if (activeCategory !== "All") {
-      result = result.filter((p) => p.category === activeCategory);
+      result = result.filter((p) => (p.category || p.Category) === activeCategory);
     }
 
     result = [...result].sort((a, b) => {
-      if (sortOrder === "price-low") return a.price - b.price;
-      if (sortOrder === "price-high") return b.price - a.price;
+      // FIX: Normalize values first to satisfy strict TypeScript rules
+      const priceA = Number(a.price ?? a.Price ?? 0);
+      const priceB = Number(b.price ?? b.Price ?? 0);
+      const isNewA = a.isNew ?? a.IsNew ?? false;
+      const isNewB = b.isNew ?? b.IsNew ?? false;
+
+      if (sortOrder === "price-low") return priceA - priceB;
+      if (sortOrder === "price-high") return priceB - priceA;
       if (sortOrder === "newest") {
-        return (a.isNew === b.isNew) ? 0 : a.isNew ? -1 : 1;
+        return (isNewA === isNewB) ? 0 : isNewA ? -1 : 1;
       }
       return 0;
     });
@@ -153,7 +163,7 @@ export default function CollectionPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-16">
             {filteredAndSortedProducts.length > 0 ? (
               filteredAndSortedProducts.map((product) => (
-                <FashionCard key={product.id} product={product} />
+                <FashionCard key={product.ID} product={product} /> // FIX: Changed product.id to product.ID
               ))
             ) : (
               <div className="col-span-full py-20 text-center">
