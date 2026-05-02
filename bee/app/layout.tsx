@@ -1,39 +1,49 @@
-import type { Metadata } from "next";
-import { Inter, Great_Vibes } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "@/components/ThemeProvider";
-import CartDrawer from "@/components/shop/CartDrawer";
-import Footer from "@/components/navigation/Footer"; // 1. Import Footer
+import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const greatVibes = Great_Vibes({ weight: "400", subsets: ["latin"], variable: "--font-script" });
+const inter = Inter({ subsets: ['latin'] });
+
+const storeName = "BEE Empire's Boutique";
+const storeDescription = "Curated premium fashion drops for the modern, unapologetic woman. Highly limited collections.";
+
+// THE FIX: Move themeColor into its own viewport export
+export const viewport: Viewport = {
+  themeColor: "#000000",
+};
 
 export const metadata: Metadata = {
-  title: "BEE Empire's | High Fashion",
-  description: "Shop the latest trends directly via WhatsApp.",
+  title: {
+    default: storeName,
+    template: `%s | ${storeName}`, 
+  },
+  description: storeDescription,
+  keywords: ["fashion store", "boutique clothing", "limited drops", "women's fashion", "premium aesthetic"],
+  authors: [{ name: storeName }],
+  creator: storeName,
+  
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    siteName: storeName,
+    title: storeName,
+    description: storeDescription,
+  },
+  twitter: {
+    card: 'summary_large_image', 
+    title: storeName,
+    description: storeDescription,
+  },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      {/* Added flex and min-h-screen to the body to ensure the footer stays at the bottom even on short pages */}
-      <body className={`${inter.variable} ${greatVibes.variable} font-sans bg-boutique-light dark:bg-boutique-dark text-neutral-900 dark:text-neutral-50 transition-colors duration-500 ease-in-out antialiased flex flex-col min-h-screen`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          
-          <main className="grow">
-            {children}
-          </main>
-          
-          {/* 2. Add the Footer here */}
-          <Footer />
-          
-          <CartDrawer />
-        </ThemeProvider>
-      </body>
+    <html lang="en">
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }
