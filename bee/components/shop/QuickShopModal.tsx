@@ -3,18 +3,8 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { X, Minus, Plus } from "lucide-react";
-
-interface Product {
-  ID: number;
-  name?: string; Name?: string;
-  price?: number; Price?: number;
-  category?: string; Category?: string;
-  imageUrl?: string; ImageUrl?: string;
-  colors?: string; Colors?: string;
-  sizes?: string; Sizes?: string;
-  stock?: number; Stock?: number;
-  isNew?: boolean; IsNew?: boolean;
-}
+import { useCartStore } from "@/store/cartStore";
+import { Product } from "./FashionCard"; // THE FIX: Importing the official strict type
 
 interface QuickShopModalProps {
   isOpen: boolean;
@@ -26,20 +16,22 @@ export default function QuickShopModal({ isOpen, onClose, product }: QuickShopMo
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
+  
+  const addItem = useCartStore((state) => state.addItem);
 
-  const pName = product?.name || product?.Name || "";
-  const pPrice = Number(product?.price ?? product?.Price ?? 0);
-  const pCategory = product?.category || product?.Category || "";
-  const pImageUrl = product?.imageUrl || product?.ImageUrl || "";
-  const rawColors = product?.colors || product?.Colors || "";
-  const rawSizes = product?.sizes || product?.Sizes || "";
-  const pStock = Number(product?.stock ?? product?.Stock ?? 0);
+  // Since we perfected the mapping in CollectionPage, we don't need messy fallbacks here!
+  const pName = product?.name || "";
+  const pPrice = product?.price || 0;
+  const pCategory = product?.category || "Uncategorized";
+  const pImageUrl = product?.imageUrl || "";
+  const rawColors = product?.colors || "";
+  const rawSizes = product?.sizes || "";
+  const pStock = product?.stock ?? 10; 
 
   // ULTRA STRICT SCROLL LOCK
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
-      // This helps prevent background scrolling on mobile Safari
       document.body.style.position = "fixed";
       document.body.style.width = "100%";
     } else {
@@ -85,36 +77,34 @@ export default function QuickShopModal({ isOpen, onClose, product }: QuickShopMo
     onClose();
   };
 
+  const handleAddToCart = () => {
+    // THE FIX: product is now strictly typed, no "as any" needed!
+    addItem(product, quantity, selectedColor, selectedSize);
+    handleClose();
+  };
+
   const availableColors = rawColors ? rawColors.split(',').map(c => c.trim()).filter(Boolean) : [];
   const availableSizes = rawSizes ? rawSizes.split(',').map(s => s.trim()).filter(Boolean) : [];
 
   return (
     <div 
-      className="fixed inset-0 z-9999 flex items-center justify-center bg-black/95 p-3 sm:p-6 backdrop-blur-md transition-opacity overscroll-none"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-3 sm:p-6 backdrop-blur-md transition-opacity overscroll-none"
       onClick={handleClose}
-      style={{ touchAction: 'none' }} // Stops mobile bounce effect on the black overlay
+      style={{ touchAction: 'none' }} 
     >
-      {/* 
-        max-h-[95dvh]: Uses Dynamic Viewport Height so it always stays inside the phone screen, 
-        even when the browser's address bar appears. 
-      */}
       <div 
         className="bg-[#121212] w-full max-w-5xl max-h-[95dvh] rounded-md overflow-hidden flex flex-col md:flex-row shadow-2xl relative animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()} 
-        style={{ touchAction: 'auto' }} // Re-enables touch inside the modal if it ever needs to scroll
+        style={{ touchAction: 'auto' }} 
       >
         <button 
           onClick={handleClose}
-          className="absolute top-2 right-2 md:top-4 md:right-4 z-100 bg-black/80 hover:bg-red-600 p-1.5 md:p-2 rounded-full transition-colors text-white border border-neutral-700 hover:border-red-600 shadow-lg"
+          className="absolute top-2 right-2 md:top-4 md:right-4 z-50 bg-black/80 hover:bg-red-600 p-1.5 md:p-2 rounded-full transition-colors text-white border border-neutral-700 hover:border-red-600 shadow-lg"
         >
           <X className="w-4 h-4 md:w-5 md:h-5" />
         </button>
 
-        {/* IMAGE FIX: Slashed height on mobile to h-[140px] to guarantee everything fits without scrolling */}
-        <div 
-          className="w-full md:w-1/2 h-35 sm:h-48 md:h-auto md:min-h-120 bg-neutral-900 relative shrink-0 p-2 md:p-4"
-          style={{ position: 'relative' }}
-        >
+        <div className="w-full md:w-1/2 h-35 sm:h-48 md:h-auto md:min-h-120 bg-neutral-900 relative shrink-0 p-2 md:p-4">
           {pImageUrl ? (
             <Image 
               src={pImageUrl} 
@@ -131,12 +121,11 @@ export default function QuickShopModal({ isOpen, onClose, product }: QuickShopMo
           )}
         </div>
 
-        {/* DETAILS FIX: Massively condensed margins (mb-2 instead of mb-6) and scaled down text for mobile */}
         <div className="w-full md:w-1/2 flex-1 flex flex-col p-4 md:p-8 text-white overflow-y-auto">
           <span className="text-[9px] md:text-xs font-bold uppercase tracking-widest text-neutral-400 mb-0.5 shrink-0">
             {pCategory}
           </span>
-          <h2 className="text-xl md:text-3xl font-bold mb-0.5 pr-8 shrink-0 leading-tight">{pName}</h2>
+          <h2 className="text-xl md:text-3xl font-bold mb-0.5 pr-8 shrink-0 leading-tight font-script uppercase">{pName}</h2>
           <p className="text-lg md:text-2xl font-bold text-amber-500 mb-3 md:mb-5 shrink-0 leading-none">₦{pPrice.toLocaleString()}</p>
 
           {availableColors.length > 0 && (
@@ -175,7 +164,7 @@ export default function QuickShopModal({ isOpen, onClose, product }: QuickShopMo
                   <button 
                     key={size}
                     onClick={() => setSelectedSize(size)}
-                    className={`w-7 h-7 md:w-10 md:h-10 flex items-center justify-center border text-[9px] md:text-xs font-bold uppercase transition-all ${
+                    className={`px-2 py-1 md:px-3 md:py-1.5 min-w-8 md:min-w-10 text-center border text-[9px] md:text-xs font-bold uppercase transition-all ${
                       selectedSize === size 
                         ? "border-amber-500 text-amber-500 bg-amber-500/10" 
                         : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
@@ -220,9 +209,10 @@ export default function QuickShopModal({ isOpen, onClose, product }: QuickShopMo
 
             <button 
               disabled={pStock === 0}
+              onClick={handleAddToCart}
               className="w-full bg-[#1A1A1A] hover:bg-amber-600 text-white py-2.5 md:py-3 font-bold uppercase tracking-widest text-[10px] md:text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-800 hover:border-amber-600"
             >
-              {pStock > 0 ? 'Select Options' : 'Out of Stock'}
+              {pStock > 0 ? 'Add to Bag' : 'Out of Stock'}
             </button>
           </div>
           

@@ -6,15 +6,18 @@ import FashionCard, { Product } from "@/components/shop/FashionCard";
 import { Loader2 } from "lucide-react";
 
 // Strict TypeScript interface for the Go API response
+// We include variations of uppercase/lowercase to catch however Go sends the JSON
 interface ApiProduct {
   ID: number;
-  name?: string;
-  price?: number;
-  category?: string;
-  imageUrl?: string;
-  image_url?: string;
-  isNew?: boolean;
-  is_new?: boolean;
+  name?: string; Name?: string;
+  price?: number; Price?: number;
+  category?: string; Category?: string;
+  imageUrl?: string; image_url?: string; ImageUrl?: string;
+  isNew?: boolean; is_new?: boolean; IsNew?: boolean;
+  stock?: number; Stock?: number;
+  quantity?: number; Quantity?: number;
+  colors?: string; Colors?: string; // Essential for the modal options
+  sizes?: string; Sizes?: string;   // Essential for the modal options
 }
 
 export default function CollectionPage() {
@@ -28,7 +31,6 @@ export default function CollectionPage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        // CRITICAL FIX: Pointed to LIVE Render server and added cache-busting
         const response = await fetch("https://bee-empire.onrender.com/products?t=" + new Date().getTime(), {
           cache: "no-store"
         });
@@ -36,14 +38,18 @@ export default function CollectionPage() {
         
         const data = await response.json();
         
-        // Match the strict FashionCard Product interface
         const formattedProducts: Product[] = data.map((item: ApiProduct) => ({
           ID: item.ID,
-          name: item.name || "",
-          price: item.price || 0,
-          category: item.category || "Uncategorized",
-          imageUrl: item.imageUrl || item.image_url || "/mock-1.jpg", 
-          isNew: item.isNew || item.is_new || false,
+          name: item.name || item.Name || "",
+          price: item.price || item.Price || 0,
+          category: item.category || item.Category || "Uncategorized",
+          imageUrl: item.imageUrl || item.image_url || item.ImageUrl || "/mock-1.jpg", 
+          isNew: item.isNew || item.is_new || item.IsNew || false,
+          
+          // THE FIX: Grabbing the strict modal data
+          stock: item.stock ?? item.Stock ?? item.quantity ?? item.Quantity ?? 10, 
+          colors: item.colors || item.Colors || "", 
+          sizes: item.sizes || item.Sizes || "",
         }));
 
         formattedProducts.reverse();
@@ -59,7 +65,6 @@ export default function CollectionPage() {
   }, []);
 
   const dynamicCategories = useMemo(() => {
-    // FIX: Ensure it only ever extracts strings, never undefined
     const uniqueCats = Array.from(new Set(products.map((p) => p.category || p.Category || ""))).filter(c => c !== "");
     return ["All", ...uniqueCats.sort()];
   }, [products]);
@@ -71,7 +76,6 @@ export default function CollectionPage() {
     }
 
     result = [...result].sort((a, b) => {
-      // FIX: Normalize values first to satisfy strict TypeScript rules
       const priceA = Number(a.price ?? a.Price ?? 0);
       const priceB = Number(b.price ?? b.Price ?? 0);
       const isNewA = a.isNew ?? a.IsNew ?? false;
@@ -93,8 +97,8 @@ export default function CollectionPage() {
       <TopNav />
       
       <section className="w-full max-w-7xl mx-auto px-5 md:px-12 pt-16 md:pt-24 pb-8 animate-in fade-in slide-in-from-bottom-10 duration-700 ease-out">
-        <h1 className="text-5xl md:text-7xl font-bold uppercase tracking-tighter text-neutral-900 dark:text-neutral-50 mb-4">
-          The <span className="font-script lowercase text-amber-600 dark:text-amber-500 text-6xl md:text-8xl tracking-normal italic mr-2">Full</span> Drop
+        <h1 className="text-5xl md:text-7xl font-bold uppercase tracking-tighter text-neutral-900 dark:text-neutral-50 mb-4 font-script">
+          The Full Drop
         </h1>
         <p className="text-neutral-600 dark:text-neutral-400 max-w-xl text-lg font-medium">
           Every piece in our current rotation. Highly limited stock. Once it&apos;s gone, it&apos;s gone.
@@ -163,7 +167,7 @@ export default function CollectionPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-16">
             {filteredAndSortedProducts.length > 0 ? (
               filteredAndSortedProducts.map((product) => (
-                <FashionCard key={product.ID} product={product} /> // FIX: Changed product.id to product.ID
+                <FashionCard key={product.ID} product={product} />
               ))
             ) : (
               <div className="col-span-full py-20 text-center">
